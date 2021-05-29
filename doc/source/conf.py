@@ -33,10 +33,12 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.todo',
-    'sphinx.ext.mathjax', 
+    'sphinx.ext.mathjax',
     'sphinx.ext.githubpages',
     'sphinx.ext.napoleon',
 ]
+
+#mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -44,7 +46,7 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst','.md']
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -53,7 +55,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PyGSLIB' 
+project = u'PyGSLIB'
 copyright = u'2016, Adrian Martinez Vargas'
 author = u'Adrian Martinez Vargas'
 
@@ -135,7 +137,7 @@ html_theme = 'sphinx_rtd_theme'
 #html_title = u'PyGSLIB Documentation v0.0.0.3.8'
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = 'Opengeostat_fav.png'
+html_short_title = 'opengeostat_fab.png'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -144,7 +146,7 @@ html_short_title = 'Opengeostat_fav.png'
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = 'Opengeostat_fav.png' 
+html_favicon = 'opengeostat_fab.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -296,3 +298,8 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+# Markdown support
+source_parsers = {
+   '.md': 'recommonmark.parser.CommonMarkParser',
+}

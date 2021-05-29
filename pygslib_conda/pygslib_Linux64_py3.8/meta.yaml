@@ -1,0 +1,32 @@
+
+package:
+  name: pygslib
+  version: "0.0.0.6.0.0"
+
+python:
+  - 3.8
+
+requirements:
+  build:
+    - python
+    - cython
+    - setuptools
+    - numpy
+    - libgfortran
+
+  run:
+    - python
+    - numpy
+    - pandas >=0.19
+    - matplotlib
+    - scipy
+    - vtk >=8.0
+    - libgfortran
+    - colour
+    - bokeh
+    - ezdxf
+
+about:
+  home: https://github.com/opengeostat/pygslib
+  license: MIT License
+  summary: 'Python wrap of GSLIB modified code and general geostatistical package'

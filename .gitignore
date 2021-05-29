@@ -2,6 +2,9 @@
 /build
 /dist
 
+# Cython debug folder
+/cython_debug
+
 #python metadata 
 /*.egg
 /*.egg-info
@@ -11,14 +14,11 @@
 *.so
 *.pyd
 *.c
+*.dll
 
 
 #temporary files
 *~
-/develop_tmp
-/cross-check-gslib
-.spyderworkspace
-.spyderproject
 
 #Ipython check points
 /.ipynb_checkpoints
@@ -27,9 +27,3 @@
 .spyderproject
 .spyderworkspace
 
-#geany
-*.geany
-
-#mac files
-.DS_Store
-.DS_Store?

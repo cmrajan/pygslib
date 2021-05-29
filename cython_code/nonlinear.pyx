@@ -48,6 +48,7 @@ from libc.math cimport exp
 import pygslib
 import matplotlib.pyplot as plt 
 
+
 # is nan test for cython 
 #from libc.math cimport isnan
 
@@ -85,15 +86,17 @@ ana_options = {
 # ----------------------------------------------------------------------
 #   Transformation table
 # ----------------------------------------------------------------------
-cpdef ttable(z, w):
+cpdef ttable(z, w = None):
     """ttable(z, w)
     
     Creates a transformation table. 
     
     Parameters
     ---------
-    z,w : 1D numpy arrays of floats 
-        Variable and declustering weight.
+    z : 1D numpy arrays of floats 
+        Input variable.
+    w : (Optional, default None) 1D numpy arrays of floats or None
+        Variable and declustering weight. If None w is set internally as array of ones. 
     Returns:
     transin,transout : 1D numpy arrays with pairs of raw and gaussian values
     
@@ -102,6 +105,9 @@ cpdef ttable(z, w):
     """
     cdef int error
     
+    if w is None:
+        w = np.ones([len(z)])
+
     transin,transout, error = pygslib.gslib.__dist_transf.ns_ttable(z,w)
     
     assert error < 1, 'There was an error = {} in the function gslib.__dist_transf.ns_ttable'.format(error)
@@ -124,7 +130,9 @@ cpdef nscore(z, transin, transout, getrank=False):
         Variable to transform.
     transin,transout : 1D numpy arrays of floats
         transformation table as obtained in function ttable
-        
+    getrank: boolean (optional, default False)
+        If false return the gaussian values, if true returns gaussian probability (rank)
+
     Returns
     -------
     y : 1D numpy array of floats
@@ -223,15 +231,15 @@ cpdef stats(z, w, iwt = True, report = True):
     assert error < 1, 'There was an error = {} in the function gslib.__dist_transf.ns_ttable'.format(error)
     
     if report:
-        print  'Stats Summary'
-        print  '-------------'
-        print  'Count          ', len(z)
-        print  'Minimum        ', xmin
-        print  'Maximum        ', xmax
-        print  'CV             ', xcvr
-        print  'Mean           ', xmen
-        print  'Variance       ', xvar
-        print  'Quantiles 2.5-97.5' , [xpt025,xlqt,xmed,xuqt,xpt975]
+        print  ('Stats Summary')
+        print  ('-------------')
+        print  ('Count          ', len(z))
+        print  ('Minimum        ', xmin)
+        print  ('Maximum        ', xmax)
+        print  ('CV             ', xcvr)
+        print  ('Mean           ', xmen)
+        print  ('Variance       ', xvar)
+        print  ('Quantiles 2.5-97.5' , [xpt025,xlqt,xmed,xuqt,xpt975])
         
     return xmin,xmax, xcvr,xmen,xvar 
     
@@ -535,8 +543,8 @@ cpdef Z2Y_linear(np.ndarray [double, ndim=1] z,
 
     Returns
     -------
-    Z : 1D array of float64
-        raw values corresponding to Y 
+    Y : 1D array of float64
+        gaussian values corresponding to Z 
       
     See Also
     --------
@@ -710,10 +718,10 @@ cpdef findcontrolpoints(zana, zraw, gauss, zpmin, zpmax, zamin, zamax):
     cdef int ii
     cdef int jj
     
-    assert zamax < zamin
-    assert zpmax < zpmin
-    assert zamax <= zpmax
-    assert zamin >= zpmin
+    assert zamax > zamin, 'zamax > zamin'
+    assert zpmax > zpmin, 'zpmax > zpmin'
+    assert zamax <= zpmax, 'zamax <= zpmax'
+    assert zamin >= zpmin, 'zamin >= zpmin'
         
     #get index for zpmax
     for jj in range(zraw.shape[0]-1, 0, -1):
@@ -763,8 +771,8 @@ def anamor(z, w, ltail=1, utail=1, ltpar=1, utpar=1, K=30,
         - create an arbitrary secuence of Y ndisc values in interval [ymin, ymax] 
         - backtransform Y to obtain pairs Z, Y. You can define arbitrary 
           maximum and minimum practical values beyond data limits and extrapolation functions
-        - calculate gaussian anamorphosis with hermite polynomials and hermite coeficients
-        - calculate variance from hermite coeficients
+        - calculate gaussian anamorphosis with hermite polynomials and hermite coefficients
+        - calculate variance from hermite coefficients
         - asign or calculate the authorized and practical intervals of the gaussian anamorphosis
        
         You may change the parameters ltail, utail, ltpar, utpar, K, zmin, zmax, ymin, 
@@ -919,18 +927,18 @@ def anamor(z, w, ltail=1, utail=1, ltpar=1, utpar=1, K=30,
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     
     
-    print 'Raw Variance', raw_var
-    print 'Variance from PCI', PCI_var
+    print ('Raw Variance', raw_var)
+    print ('Variance from PCI', PCI_var)
     
-    print 'zamin', zana[i]
-    print 'zamax', zana[j]
-    print 'yamin', gauss[i]
-    print 'yamax', gauss[j]
+    print ('zamin', zana[i])
+    print ('zamax', zana[j])
+    print ('yamin', gauss[i])
+    print ('yamax', gauss[j])
     
-    print 'zpmin', raw[ii]
-    print 'zpmax', raw[jj]
-    print 'ypmin', gauss[ii]
-    print 'ypmax', gauss[jj]
+    print ('zpmin', raw[ii])
+    print ('zpmax', raw[jj])
+    print ('ypmin', gauss[ii])
+    print ('ypmax', gauss[jj])
     
     
     return PCI, H, raw, zana, gauss,Z , P, raw_var , PCI_var, fig
@@ -953,7 +961,7 @@ def anamor_blk( PCI, H, r, gauss, Z,
     r: float
         support correlation coefficient
     gauss, Z: array of floats
-        pair of gaussian and corrected Z anamorphosis
+        pair of gaussian and Z obtained with anamorphosis
     ltail, utail, ltpar, utpar: floats/integer (optional, default 1)
         extrapolation functions, as used in pygslib.nonlinear.backtr 
         and gslib.__dist_transf.backtr
@@ -965,7 +973,7 @@ def anamor_blk( PCI, H, r, gauss, Z,
     Returns:
 
     ZV: array of float
-        corrected Z values in point support
+        corrected Z values in block support
     PV: array of float
         Probability P{Z<c}
     fig: matplotlib figure
@@ -992,6 +1000,19 @@ def anamor_blk( PCI, H, r, gauss, Z,
                                      gauss=gauss,
                                      zpmin=zpmin, 
                                      zpmax=zpmax)
+
+    
+
+    print ('zamin blk', Z[i])
+    print ('zamax blk', Z[j])
+    print ('yamin blk', gauss[i])
+    print ('yamax blk', gauss[j])
+    
+    print ('zpmin blk', zpmin)
+    print ('zpmax blk', zpmax)
+    print ('ypmin blk', gauss[ii])
+    print ('ypmax blk', gauss[jj])
+
 
     # Now we get the transformation table corrected
     ZV = pygslib.nonlinear.backtr( y = gauss, 
@@ -1104,8 +1125,8 @@ def anamor_raw(z, w, K=30, **kwargs):
     ax.plot(gauss,zana, options['ana_pt_line'], color = options['ana_pt_color'], label = options['ana_pt_label'])
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     
-    print 'Raw Variance', raw_var
-    print 'Variance from PCI', PCI_var
+    print ('Raw Variance', raw_var)
+    print ('Variance from PCI', PCI_var)
     
     return PCI, H, raw, zana, gauss, raw_var , PCI_var, fig
     
@@ -1335,8 +1356,46 @@ cpdef get_ro(double Covar_ZvZv,
 # ----------------------------------------------------------------------
 def gtcurve (cutoff, z, p, varred = 1, ivtyp = 0, zmin = None, zmax = None,
              ltail = 1, ltpar = 1, middle = 1, mpar = 1, utail = 1, utpar = 1,maxdis = 1000):
-    """
-    TODO: 
+    """ gtcurve (cutoff, z, p, varred = 1, ivtyp = 0, zmin = None, zmax = None,
+             ltail = 1, ltpar = 1, middle = 1, mpar = 1, utail = 1, utpar = 1,maxdis = 1000)
+    
+    Calculates grade and normalized tonnage (0 to 1) above a given cutoff 
+    from input pairs of variable z, and probability p. The function calls the `pygslib.gslib.postik`
+    to calculate probability and grade. 
+
+    You can pass z and p corrected to block support with DGM, with postik parameter `varred == 1`,
+    to get a DGM global change of support. Alternatively, you can pass z and p in point support
+    and use a variance reduction factor  `varred < 1` and `ivol = 1` to do affine correction (`ivtyp=1`)
+    or indirect lognormal correction (`ivtyp=2`). 
+
+    Parameters
+    ----------
+    cutoff: 1D numeric array
+        1D array with cutoff grades to plot
+    z, p: 1D numeric array 
+        variable (grade) and its probability (CDF). 
+    varred: int, default  1
+        variance reduction factor. If varred!=1 variance reduction will be 
+        applied with affine correction (`ivtyp=1`), or lognormal correction (`ivtyp=2`)
+    ivtyp: int, default  0
+        type of change of support applied if varred!=1. 
+        affine correction (`ivtyp=1`), and lognormal correction (`ivtyp=2`) are the two options. 
+        for DGM global change of support preprocess z, p using `pygslib.nonlinear.anamor_blk`.
+    zmin, zmax: floats, default None
+        minimum and maximum of the z in the CDF. It can be outside the data interval. 
+        If None will be set to input z minimum and maximum.
+    ltail, ltpar, middle, mpar , utail, utpar: numeric
+        lower, middle, and upper tail type and parameter
+        ltail,mtail,utail=1 is linear interpolation.
+        ltail,mtail,utail=2 is power model 
+        ltail=3 is not implemented in this fuction, but availiable in `pygslib.gslib.postik`
+    maxdis: integer, default 1000
+        maximum discretization parameter
+
+    Notes:
+    ----
+    see http://www.gslib.com/gslib_help/postik.html for postik gslib options
+
     """
     
     t = np.zeros([len(cutoff)])
@@ -1396,13 +1455,26 @@ def gtcurve (cutoff, z, p, varred = 1, ivtyp = 0, zmin = None, zmax = None,
         
     return t,ga,gb    
     
-def plotgt(cutoff, t, g, label):
-    """
-    TODO: 
+def plotgt(cutoff, t, g, label, figsize = [6.4, 4.8]):
+    """ plotgt(cutoff, t, g, label)
+    
+    Plots grade and tonnage above cutoff previously calculated
+
+    Parameters
+    ----------
+    cutoff: 1D numeric array
+        1D array with cutoff grades to plot
+    t, g: 2D numeric array 
+        this is an array of n,m array, where n is the number of tonnage curves
+        and m = len(cutoff). 
+    label: 1D array of strings
+        the names of each grade and tonnage curve
+    figsize: 1D array, default [6.4, 4.8]
+        size of the matplotlib figue
     """
     
     # prepare ax and fig
-    fig, ax1 = plt.subplots()
+    fig, ax1 = plt.subplots(figsize=figsize)
     ax1.set_xlabel('cutoff')
     ax1.set_ylabel('Tonnage')
     ax1.tick_params('y')
@@ -1426,52 +1498,99 @@ def plotgt(cutoff, t, g, label):
     return fig    
     
     
-    
-    
- 
+
 
 # ----------------------------------------------------------------------
 #   Uniform conditioning functions
 # ----------------------------------------------------------------------
 
-#cpdef recurrentU(np.ndarray [double, ndim=2] H, float yc):
-    
-#    U =  H 
-"""
-cpdef ucondit(np.ndarray [double, ndim=1] ZV,
-              np.ndarray [double, ndim=1] PCI, 
-              float zc,
+cpdef ucondit(float YV, 
+              float yc,
+              np.ndarray [double, ndim=1] PCI,
               float r=1., 
               float R=1., 
               float ro=1.): 
     
+    """ ucondit(YV, yc, PCI, r=1., R=1., ro=1.)
     
-    # r block support, R panel support, ro info effect  
+    Computes uniform conditioning estimation in a panel with krided gaussian value YV,
+    at cutoff yc, given support effect coefficients r, R, and information 
+    effect coefficient ro
+
+    Parameters
+    ----------
+    YV: numeric
+        Kriged gaussian grade in a panel (get it from panel kriged values ZV using panel anamorphosis)
+    PCI: 1D numeric array of double 
+        PCI coefficients 
+    yc: numeric
+        cutoff in gaussian space (get it from zc using the SMU anamorphosis function)
+    r,R,ro: numeric
+        point and panel support effect coefficients, and information 
+        effect coefficient
     
+    Returns
+    ----
+    T, Q: 
+        floats with tonnage and metal above cutoff
+
+    Note
+    ----
+    Note that you may use gaussian panel grade (YV), and gaussian cutoff (yc) 
+    as input. 
     
-    cdef float t
+    You can get yc values from tabulated point transformations using the function 
+    `pygslib.nonlinear.Z2Y_linear`. 
+
+    YV can be interpolated directly in panels from y(x) on samples, or it can be 
+    obtained transforming kriged panel values in non-gaussuan space (ZV) into 
+    its gaussian equivalent using tabulated panel anamorphosis and the function 
+    `pygslib.nonlinear.Z2Y_linear`
+
+    """ 
+    cdef float t, qn, qq
     cdef int K
-    cdef np.ndarray [double, ndim=1] T, Q, M
-    cdef np.ndarray [double, ndim=2] H
+    cdef float T 
+    cdef float Q 
+    cdef float M 
+    cdef np.ndarray [double, ndim=1] HYV
+    cdef np.ndarray [double, ndim=1] Hyc
+    cdef np.ndarray [double, ndim=2] U
     
     # get general parameters 
     t=R/(r*ro)       # info and support effect (for no info make ro=1)
-    K = PCI.shape[0]
-    yc = Z2Y_linear 
-    YV = Z2Y_linear
+    K = PCI.shape[0]  # number of PCI
     
-    H = recurrentH(YV, K)
+    # calculate tonnage
+    T = 1- norm.cdf((yc-t*YV)/np.sqrt(1-t**2))  # this is ~ P[Zv>=zc] 
     
-    T[:] = 1- norm.pdf((yc-t*YV)/np.sqrt(1-t**2))
+
+    # ERROR from here, the results are not OK
+
+    # calculate metal (equation 3.17 from  C.T. Neufeld, 2015. Guide to Recoverable Reserves with Uniform Conditioning. Centre for Computational Geostatistics (CCG) Guidebook Series Vol. 4)
+    # also C. Neufeld and C.V. Deutsch Calculating Recoverable Reserves with Uniform Conditioning
+    HYV = recurrentH(np.array([YV]), K).ravel() # calculate hermite polynomials of YV
+    Hyc = recurrentH(np.array([yc]), K).ravel() # calculate hermite polynomials of yc
     
-    Q = np.zeros ([ZV.shape[0]])
+    # get U using recurrence
+    U = np.zeros([K,K])
+    U[0,0] = 1-norm.cdf(yc)
+    g = norm.pdf(yc)
+    for k in range(1,K):
+        U[0,k] = U[k,0] = -1/np.sqrt(k)*Hyc[k-1]*g
+
+    for n in range(1,K):
+        for p in range(n,K):
+            U[n,p] = U[p,n]= -1/np.sqrt(n)*Hyc[p]*Hyc[n-1]*g + np.sqrt(p/n)*U[n-1][p-1]
+
+    # Get Q
+    Q = 0
+    for n in range(0,K):
+        qq = (t**n)*HYV[n]
+        for p in range(0,K):
+            qn = PCI[p]*(r**p)*(ro**p)*U[p][n]
+            Q = Q + qq * qn                  # verify that Q = Q + PCI[p]*r**p  *(ro**p) *U[n][p]*t**n*H[n]; and enable info effect
+
+    return T, Q
     
-    for i in range(K):
-        for j in range(K): 
-            Q = Q + t**i*H[i][:] * PCI[j]*r**j*ro**j
-    
-    #M = Q / T
-    
-    return T, Q, M
-    
-"""
+
